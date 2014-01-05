@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>BlobIOLib</RootNamespace>
+    <RootNamespace>BlobIO</RootNamespace>
     <AssemblyName>BlobIOLib</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

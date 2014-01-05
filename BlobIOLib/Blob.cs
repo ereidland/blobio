@@ -2,8 +2,23 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace BlobIOLib
+namespace BlobIO
 {
+    #region Blob Type Enum
+
+    public enum BlobEncoding : byte
+    {
+        Null    = 0,
+        String  = 1,
+        Map     = 2,
+        Array   = 3,
+        Int     = 4,
+        Float   = 5,
+        Bool    = 6,
+    }
+
+    #endregion
+
     #region Blob Base Class
     public abstract class Blob
     {
@@ -18,6 +33,8 @@ namespace BlobIOLib
             get { return null; }
             set {}
         }
+
+        public BlobEncoding Encoding { get; private set; }
 
         public virtual Blob Remove(string key) { return null; }
         public virtual Blob Remove(int index) { return null; }
@@ -93,6 +110,8 @@ namespace BlobIOLib
 
         public virtual int Count { get { return 0; } }
         public virtual string Value { get { return null; } }
+
+        public Blob(BlobEncoding encoding) { Encoding = encoding; }
     }
 
     #endregion
@@ -107,7 +126,7 @@ namespace BlobIOLib
             get { return _value; }
         }
 
-        public BlobString(string value = "") { _value = value; }
+        public BlobString(string value = "") : base(BlobEncoding.String) { _value = value; }
     }
 
     public class BlobInt : Blob
@@ -137,7 +156,7 @@ namespace BlobIOLib
             return true;
         }
 
-        public BlobInt(int number = 0) { _value = number; }
+        public BlobInt(int number = 0) : base(BlobEncoding.Int) { _value = number; }
     }
 
     public class BlobFloat : Blob
@@ -167,7 +186,7 @@ namespace BlobIOLib
             return true;
         }
 
-        public BlobFloat(float number = 0) { _value = number; }
+        public BlobFloat(float number = 0) : base (BlobEncoding.Float) { _value = number; }
     }
 
     public class BlobBool : Blob
@@ -197,7 +216,7 @@ namespace BlobIOLib
             return true;
         }
 
-        public BlobBool(bool state = false) { _value = state; }
+        public BlobBool(bool state = false) : base (BlobEncoding.Bool) { _value = state; }
     }
     #endregion
 
@@ -280,7 +299,7 @@ namespace BlobIOLib
             return str;
         }
 
-        public BlobArray()
+        public BlobArray() : base (BlobEncoding.Array)
         {
             _list = new List<Blob>();
         }
@@ -339,7 +358,7 @@ namespace BlobIOLib
             return removed;
         }
 
-        public BlobMap() { _dic = new Dictionary<string, Blob>(); }
+        public BlobMap() : base (BlobEncoding.Map) { _dic = new Dictionary<string, Blob>(); }
     }
 
     #endregion
