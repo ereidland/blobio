@@ -6,6 +6,7 @@ namespace BlobIO
     {
         public const int FloatRounding = 100;
         public const int IntSizeInBits = 32;
+        public const int ShortSizeInBits = 16;
 
         public enum SeekMode
         {
@@ -163,6 +164,22 @@ namespace BlobIO
             return this;
         }
 
+        
+        public Bits WriteShort(short value)
+        {
+            EnsureBitCapacity(_index + ShortSizeInBits);
+            return WriteShortInternal(value);
+        }
+
+        private Bits WriteShortInternal(short value)
+        {
+            byte a, b;
+            ConvertShortToBytes(value, out a, out b);
+            WriteByteInternal(a);
+            WriteByteInternal(b);
+            return this;
+        }
+
         public Bits WriteInt(int value)
         {
             EnsureBitCapacity(_index + IntSizeInBits);
@@ -228,12 +245,6 @@ namespace BlobIO
             return this;
         }
 
-        public Bits WriteCompressedInt(int num)
-        {
-            int abs = Math.Abs(num);
-
-        }
-
         public Bits SkipPaddingBits()
         {
             _index = BitIndexToByteIndex(_index) << 3;
@@ -294,6 +305,19 @@ namespace BlobIO
                     }
                 }
                 return true;
+            }
+            value = 0;
+            return false;
+        }
+
+        public bool ReadShort(out short value)
+        {
+            if (_index <= _topIndex - ShortSizeInBits)
+            {
+                byte a, b;
+                ReadByte(out a);
+                ReadByte(out b);
+                value = BytesToShort(a, b);
             }
             value = 0;
             return false;
