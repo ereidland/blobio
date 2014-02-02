@@ -267,7 +267,7 @@ namespace BlobIO
 
         public Bits SkipPaddingBits()
         {
-            BitIndex = BitIndexToByteIndex(BitIndex) << 3;
+            BitIndex = BitSizeToByteSize(BitIndex) << 3;
             return this;
         }
 

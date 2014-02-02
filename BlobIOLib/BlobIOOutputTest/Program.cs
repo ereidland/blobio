@@ -115,7 +115,6 @@ namespace BlobIO
             foreach (var previous in objects)
             {
                 object read;
-
                 
                 Console.WriteLine("Index: " + bits.BitIndex);
 
