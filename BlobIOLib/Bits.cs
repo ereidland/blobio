@@ -138,8 +138,9 @@ namespace BlobIO
 
         private Bits WriteBitInternal(bool state)
         {
-            int index = (BitIndex++) >> 3;
+            int index = BitIndex >> 3;
             _bytes[index] = (byte)Set(_bytes[index], BitIndex & 7, state);
+            BitIndex++;
             return this;
         }
 

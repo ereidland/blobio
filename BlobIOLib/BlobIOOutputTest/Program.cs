@@ -81,9 +81,9 @@ namespace BlobIO
 
             for (int j = 0; j < NumValues; j++)
             {
-//                bool bit = random.NextDouble() > 0.5;
-//                bits.WriteBit(bit);
-//                objects.Add(bit);
+                bool bit = random.NextDouble() > 0.5;
+                bits.WriteBit(bit);
+                objects.Add(bit);
 
                 byte b = (byte)(random.Next() % byte.MaxValue);
                 bits.WriteByte(b);
