@@ -1,10 +1,11 @@
 using System;
+using System.Text;
 
 namespace BlobIO
 {
     public class Bits
     {
-        public const int FloatRounding = 100;
+        private static UTF8Encoding _stringEncoding = new UTF8Encoding();
         public const int IntSizeInBits = 32;
         public const int ShortSizeInBits = 16;
 
@@ -70,9 +71,6 @@ namespace BlobIO
             d = (byte)(i & 0xFF);
         }
 
-        public static float BytesToRoundedFloat(byte a, byte b, byte c, byte d) { return BytesToInt(a, b, c, d)/(float)FloatRounding; }
-        public static void ConvertRoundedFloatToBytes(float f, out byte a, out byte b, out byte c, out byte d) { ConvertIntToBytes((int)Math.Round(f*FloatRounding), out a, out b, out c, out d); }
-
         public static short BytesToShort(byte a, byte b)
         {
             short result = b;
@@ -87,28 +85,29 @@ namespace BlobIO
         }
 
         private byte[] _bytes;
-        private int _topIndex;
 
-        private int __realIndex;
-        private int _index
+        public int TopBitIndex { get; private set; }
+
+        private int _bitIndex;
+        public int BitIndex
         {
-            get { return __realIndex; }
-            set
+            get { return _bitIndex; }
+            private set
             {
-                __realIndex = value;
-                if (__realIndex > _topIndex)
-                    _topIndex = __realIndex;
+                _bitIndex = value;
+                if (_bitIndex > TopBitIndex)
+                    TopBitIndex = _bitIndex;
             }
         }
 
-        public void EnsureBitCapacity(int howManyBits)
+        public Bits EnsureBitCapacity(int howManyBits)
         {
-            EnsureByteCapacity(BitSizeToByteSize(howManyBits));
+            return EnsureByteCapacity(BitSizeToByteSize(howManyBits));
         }
 
-        public void EnsureByteCapacity(int howManyBytes)
+        public Bits EnsureByteCapacity(int howManyBytes)
         {
-            if (_bytes == null || howManyBytes < _bytes.Length)
+            if (_bytes == null || _bytes.Length < howManyBytes)
             {
                 byte[] newBytes = new byte[howManyBytes];
 
@@ -117,13 +116,14 @@ namespace BlobIO
 
                 _bytes = newBytes;
             }
+            return this;
         }
 
         public Bits Trim()
         {
             if (_bytes != null)
             {
-                byte[] newBytes = new byte[BitSizeToByteSize(_topIndex)];
+                byte[] newBytes = new byte[BitSizeToByteSize(TopBitIndex)];
                 _bytes.CopyTo(newBytes, 0);
                 _bytes = newBytes;
             }
@@ -132,29 +132,47 @@ namespace BlobIO
 
         public Bits WriteBit(bool state)
         {
-            EnsureBitCapacity(_index + 1);
+            EnsureBitCapacity(BitIndex + 1);
             return WriteBitInternal(state);
         }
 
         private Bits WriteBitInternal(bool state)
         {
-            int index = (_index++) >> 3;
-            _bytes[index] = (byte)Set(_bytes[index], _index & 7, state);
+            int index = (BitIndex++) >> 3;
+            _bytes[index] = (byte)Set(_bytes[index], BitIndex & 7, state);
             return this;
         }
 
         public Bits WriteByte(byte value)
         {
-            EnsureBitCapacity(_index + 8);
+            EnsureBitCapacity(BitIndex + 8);
             return WriteByteInternal(value);
         }
 
-        private Bits WriteByteInternal(byte value)
+        public Bits WriteBytes(byte[] values, int startIndex, int length)
         {
-            if (IsByteAligned(_index))
+            EnsureBitCapacity(BitIndex + length*8);
+            return WriteBytesInternal(values, startIndex, length);
+        }
+
+        public Bits WriteBytes(byte[] values, int startIndex = 0)
+        {
+            return WriteBytes(values, startIndex, values.Length - startIndex);
+        }
+
+        private Bits WriteBytesInternal(byte[] values, int startIndex, int length)
+        {
+            for (int i = startIndex; i < startIndex + length; i++)
+                WriteByteInternal(values[i]);
+            return this;
+        }
+
+        private Bits WriteByteInternal(byte value, bool convert = true)
+        {
+            if (IsByteAligned(BitIndex))
             {
-                _bytes[_index >> 3] = value;
-                _index += 8;
+                _bytes[BitIndex >> 3] = value;
+                BitIndex += 8;
             }
             else
             {
@@ -163,11 +181,10 @@ namespace BlobIO
             }
             return this;
         }
-
         
         public Bits WriteShort(short value)
         {
-            EnsureBitCapacity(_index + ShortSizeInBits);
+            EnsureBitCapacity(BitIndex + ShortSizeInBits);
             return WriteShortInternal(value);
         }
 
@@ -182,7 +199,7 @@ namespace BlobIO
 
         public Bits WriteInt(int value)
         {
-            EnsureBitCapacity(_index + IntSizeInBits);
+            EnsureBitCapacity(BitIndex + IntSizeInBits);
             return WriteIntInternal(value);
         }
 
@@ -201,35 +218,21 @@ namespace BlobIO
 
         public Bits WriteFloat(float value)
         {
-            EnsureBitCapacity(_index + IntSizeInBits);
+            EnsureBitCapacity(BitIndex + IntSizeInBits);
             return WriteFloatInternal(value);
         }
 
         private Bits WriteFloatInternal(float value)
         {
-            WriteIntInternal((int)Math.Round(value*FloatRounding));
+            WriteIntInternal(new TypeUnion<int, float>(value).FirstType);
             return this;
         }
-
-        public Bits WriteLong(long value)
-        {
-            EnsureBitCapacity(_index + IntSizeInBits*2);
-            return WriteLongInternal(value);
-        }
-
-        private Bits WriteLongInternal(long value)
-        {
-            WriteIntInternal((int)(value >> 32));
-            WriteIntInternal((int)(value & 0xFFFF));
-            return this;
-        }
-
         
         public Bits WritePartialNumber(int num, int bits)
         {
             if (bits > 0 && bits < IntSizeInBits)
             {
-                EnsureBitCapacity(_index + bits);
+                EnsureBitCapacity(BitIndex + bits);
                 WritePartialNumberInternal(num, bits);
             }
             return this;
@@ -245,15 +248,31 @@ namespace BlobIO
             return this;
         }
 
+        public Bits WriteString(string str)
+        {
+            if (!string.IsNullOrEmpty(str))
+            {
+                byte[] bytes = _stringEncoding.GetBytes(str);
+                WriteShort((short)bytes.Length);
+                WriteBytes(bytes);
+            }
+            else
+            {
+                WriteShort(0);
+            }
+
+            return this;
+        }
+
         public Bits SkipPaddingBits()
         {
-            _index = BitIndexToByteIndex(_index) << 3;
+            BitIndex = BitIndexToByteIndex(BitIndex) << 3;
             return this;
         }
 
         public bool SeekBits(int howManyBits, SeekMode mode)
         {
-            int newIndex = _index;
+            int newIndex = BitIndex;
             switch (mode)
             {
                 case SeekMode.Begin:
@@ -263,7 +282,7 @@ namespace BlobIO
                     newIndex += howManyBits;
                     break;
                 case SeekMode.End:
-                    newIndex = _topIndex - howManyBits;
+                    newIndex = TopBitIndex - howManyBits;
                 break;
             }
 
@@ -271,37 +290,40 @@ namespace BlobIO
                 return false;
 
             //Modifying __realIndex instead of _index because we don't want to set the _topIndex unless we're incrementing _index during a write.
-            __realIndex = newIndex;
+            _bitIndex = newIndex;
             return false;
         }
         
         public bool SeekBytes(int howManyBytes, SeekMode seekMode) { return SeekBits(howManyBytes << 3, seekMode); }
 
-        public bool ReadBit(out bool value)
+        public bool TryReadBit(out bool value)
         {
-            if (_index < _topIndex)
+            if (BitIndex < TopBitIndex)
             {
-                value = Get(_bytes[_index >> 3], _index & 7);
-                _index++;
+                value = Get(_bytes[BitIndex >> 3], BitIndex & 7);
+                BitIndex++;
                 return true;
             }
             value = false;
             return false;
         }
 
-        public bool ReadByte(out byte value)
+        public bool TryReadByte(out byte value)
         {
-            if (_index <= _topIndex - 8)
+            if (BitIndex <= TopBitIndex - 8)
             {
-                if (IsByteAligned(_index))
-                    value = _bytes[_index >> 3];
+                if (IsByteAligned(BitIndex))
+                {
+                    value = _bytes[BitIndex >> 3];
+                    BitIndex += 8;
+                }
                 else
                 {
                     value = 0;
                     for (int i = 0; i < 8; i++)
                     {
-                        value = (byte)Set(value, i, Get(_bytes[_index >> 3], _index & 7));
-                        _index++;
+                        value = (byte)Set(value, i, Get(_bytes[BitIndex >> 3], BitIndex & 7));
+                        BitIndex++;
                     }
                 }
                 return true;
@@ -310,28 +332,45 @@ namespace BlobIO
             return false;
         }
 
-        public bool ReadShort(out short value)
+        public bool TryReadBytes(int byteLength, out byte[] values)
         {
-            if (_index <= _topIndex - ShortSizeInBits)
+            if (BitIndex <= TopBitIndex - byteLength*8)
+            {
+                byte[] read = new byte[byteLength];
+                for (int i = 0; i < read.Length; i++)
+                    TryReadByte(out read[i]);
+
+                values = read;
+                return true;
+            }
+            values = null;
+            return false;
+        }
+
+        public bool TryReadShort(out short value)
+        {
+            if (BitIndex <= TopBitIndex - ShortSizeInBits)
             {
                 byte a, b;
-                ReadByte(out a);
-                ReadByte(out b);
+                TryReadByte(out a);
+                TryReadByte(out b);
+
                 value = BytesToShort(a, b);
+                return true;
             }
             value = 0;
             return false;
         }
 
-        public bool ReadInt(out int value)
+        public bool TryReadInt(out int value)
         {
-            if (_index <= _topIndex - IntSizeInBits)
+            if (BitIndex <= TopBitIndex - IntSizeInBits)
             {
                 byte a, b, c, d;
-                ReadByte(out a);
-                ReadByte(out b);
-                ReadByte(out c);
-                ReadByte(out d);
+                TryReadByte(out a);
+                TryReadByte(out b);
+                TryReadByte(out c);
+                TryReadByte(out d);
 
                 value = BytesToInt(a, b, c, d);
                 return true;
@@ -340,42 +379,51 @@ namespace BlobIO
             return false;
         }
 
-        public bool ReadFloat(out float value)
+        public bool TryReadFloat(out float value)
         {
             int inValue;
-            if (ReadInt(out inValue))
+            if (TryReadInt(out inValue))
             {
-                value = inValue/(float)FloatRounding;
+                value = new TypeUnion<int, float>(inValue).SecondType;
                 return true;
             }
             value = 0;
             return false;
         }
 
-        public bool ReadLong(out long value)
+        public bool TryReadString(out string value)
         {
-            int a, b;
+            short length;
+            byte[] bytes;
 
-            value = 0;
+            value = null;
 
-            if (ReadInt(out a) && ReadInt(out b))
+            if (TryReadShort(out length))
             {
-                value |= (long)a << 32;
-                value |= (long)b;
+                if (length > 0)
+                {
+                    if (TryReadBytes(length, out bytes))
+                    {
+                        value = _stringEncoding.GetString(bytes);
+                    }
+                    else
+                        return false;
+                }
+
                 return true;
             }
             return false;
         }
 
-        public bool ReadPartialNumber(int bits, out int value)
+        public bool TryReadPartialNumber(int bits, out int value)
         {
             value = 0;
-            if (bits > 0 && bits < IntSizeInBits && _index < _topIndex - bits)
+            if (bits > 0 && bits < IntSizeInBits && BitIndex < TopBitIndex - bits)
             {
                 bool state;
                 for (int i = bits - 1; i >= 0; i--)
                 {
-                    ReadBit(out state);
+                    TryReadBit(out state);
                     value = Set(value, IntSizeInBits - i, state);
                 }
                 return true;
@@ -383,25 +431,90 @@ namespace BlobIO
             return false;
         }
 
+        public byte ReadByte(byte def = 0)
+        {
+            byte value;
+            if (TryReadByte(out value))
+                return value;
+            return def;
+        }
+
+        public byte[] ReadBytes(int byteLength)
+        {
+            byte[] values;
+            if (TryReadBytes(byteLength, out values))
+                return values;
+            return null;
+        }
+
+        public short ReadShort(short def = 0)
+        {
+            short value;
+            if (TryReadShort(out value))
+                return value;
+            return def;
+        }
+
+        public int ReadInt(int def = 0)
+        {
+            int value;
+            if (TryReadInt(out value))
+                return value;
+            return def;
+        }
+
+        public float ReadFloat(float def = 0)
+        {
+            float value;
+            if (TryReadFloat(out value))
+                return value;
+            return def;
+        }
+
+        public string ReadString()
+        {
+            string value;
+            if (TryReadString(out value))
+                return value;
+            return null;
+        }
+
+        public int ReadPartialNumber(int bits, int def = 0)
+        {
+            int value;
+            if (TryReadPartialNumber(bits, out value))
+                return value;
+            return def;
+        }
+
         /// <summary>
         /// Creates a new Bits instance that uses a reference to this objects bytes array.
         /// Useful for recycling the internal array without resizing.
         /// </summary>
         /// <returns>New instance of Bits.</returns>
-        public Bits ReleaseArray()
+        public Bits ReleaseArrayAsBits()
         {
-            Bits newBits = new Bits(_bytes, false);
+            return new Bits(ReleaseArray(), false);
+        }
+
+        /// <summary>
+        /// Releases the internal byte array and returns it.
+        /// </summary>
+        /// <returns>The released internal byte array.</returns>
+        public byte[] ReleaseArray()
+        {
+            byte[] existing = _bytes;
             _bytes = null;
-            _index = 0;
-            _topIndex = 0;
-            return newBits;
+            BitIndex = 0;
+            TopBitIndex = 0;
+            return existing;
         }
 
         public Bits Clear()
         {
             _bytes = null;
-            _index = 0;
-            _topIndex = 0;
+            BitIndex = 0;
+            TopBitIndex = 0;
             return this;
         }
 
@@ -411,16 +524,16 @@ namespace BlobIO
         {
             if (other._bytes != null)
             {
-                byte[] newBytes = new byte[BitIndexToByteIndex(other._topIndex)];
+                byte[] newBytes = new byte[BitIndexToByteIndex(other.TopBitIndex)];
                 for (int i = 0; i < newBytes.Length; i++)
                     newBytes[i] = other._bytes[i];
 
                 _bytes = newBytes;
-                _topIndex = other._topIndex;
+                TopBitIndex = other.TopBitIndex;
             }
         }
 
-        public Bits(byte[] existing, bool copy = false)
+        public Bits(byte[] existing, bool copy = true)
         {
             if (copy && existing != null)
             {

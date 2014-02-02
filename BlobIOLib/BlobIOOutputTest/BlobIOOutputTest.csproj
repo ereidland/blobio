@@ -5,39 +5,39 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.0</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>BlobIO</RootNamespace>
-    <AssemblyName>BlobIOLib</AssemblyName>
+    <ProjectGuid>{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BlobIOOutputTest</RootNamespace>
+    <AssemblyName>BlobIOOutputTest</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
+    <Externalconsole>true</Externalconsole>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
+    <Externalconsole>true</Externalconsole>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Blob.cs" />
-    <Compile Include="Bits.cs" />
-    <Compile Include="StringTable.cs" />
-    <Compile Include="BitFactory.cs" />
-    <Compile Include="TypeUnion.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\BlobIOLib.csproj">
+      <Project>{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}</Project>
+      <Name>BlobIOLib</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

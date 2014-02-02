@@ -3,12 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlobIOLib", "BlobIOLib.csproj", "{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlobIOOutputTest", "BlobIOOutputTest\BlobIOOutputTest.csproj", "{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BD286BE-05C4-4F85-8ED1-5E6F4D837CEC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC3C8A50-F2ED-4A9B-8786-7593050CF3AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
