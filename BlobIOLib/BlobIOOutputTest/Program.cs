@@ -36,6 +36,15 @@ namespace BlobIO
                     return (short)read == (short)previous;
                 }
             }
+            else if (previous is ushort)
+            {
+                ushort value;
+                if (bits.TryReadUShort(out value))
+                {
+                    read = value;
+                    return (ushort)read == (ushort)previous;
+                }
+            }
             else if (previous is int)
             {
                 int value;
@@ -92,6 +101,10 @@ namespace BlobIO
                 short s = (short)(random.Next() % short.MaxValue);
                 bits.WriteShort(s);
                 objects.Add(s);
+
+                ushort us = (ushort)(random.Next() % ushort.MaxValue);
+                bits.WriteUShort(us);
+                objects.Add(us);
 
                 int i = random.Next();
                 bits.WriteInt(i);

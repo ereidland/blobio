@@ -4,45 +4,111 @@ namespace BlobIO
 {
     public class StringTable
     {
-        private Dictionary<string, int> _strings;
+        private Dictionary<string, ushort> _stringsByName;
+        private Dictionary<ushort, string> _stringsByID;
 
-        private int _topNumber;
+        private bool _isHost;
 
-        public int AddString(string key)
+        private ushort _topNumber;
+
+        private void AddString(string str, ushort id)
         {
-            int existing;
+            _stringsByName[str] = id;
+            _stringsByID[id] = str;
+        }
 
-            if (!_strings.TryGetValue(key, out existing))
+        private ushort AddString(string str)
+        {
+            ushort existing;
+            if (!_stringsByName.TryGetValue(str, out existing))
+            {
                 existing = ++_topNumber;
-
+                AddString(str, existing);
+            }
             return existing;
         }
 
-        public int GetString(string key, bool create = true)
-        {
-            if (create)
-                return AddString(key);
-            else
-            {
-                int existing;
-                if (_strings.TryGetValue(key, out existing))
-                    return existing;
-            }
-
-            return 0;
-        }
-
-        public void WriteString(string str, Bits bits)
+        public void WriteString(string str, Bits bits, bool createIfMissing = true)
         {
             if (bits != null)
             {
+                ushort existing;
+                bool alreadyDefined = true;
+                bool definesEntry = false;
+                if (!_stringsByName.TryGetValue(str, out existing))
+                {
+                    alreadyDefined = false;
+                    definesEntry = _isHost;
+                    if (_isHost)
+                        existing = AddString(str);
+                }
 
+                bits.WriteBit(alreadyDefined);
+
+                if (alreadyDefined)
+                    bits.WriteUShort(existing);
+                else
+                {
+                    bits.WriteBit(definesEntry);
+
+                    if (definesEntry)
+                        bits.WriteUShort(existing);
+
+                    bits.WriteString(str);
+                }
             }
         }
 
-        public StringTable(bool ignoreCase = true)
+        public string ReadString(Bits bits)
         {
-            _strings = new Dictionary<string, int>(ignoreCase ? System.StringComparer.InvariantCultureIgnoreCase : System.StringComparer.Ordinal);
+            if (bits != null)
+            {
+                bool alreadyDefined = bits.ReadBit();
+                ushort id = 0;
+                if (alreadyDefined)
+                {
+                    id = bits.ReadShort();
+                    return GetString(id);
+                }
+                else
+                {
+                    bool definesEntry = bits.ReadBit();
+                    if (definesEntry)
+                    {
+                        if (!_isHost) //Clients cannot send the host new entries.
+                        {
+                            id = bits.ReadShort();
+                            string str = bits.ReadString();
+                            AddString(str, id);
+
+                            return str;
+                        }
+                    }
+                    else
+                        return bits.ReadString();
+                }
+            }
+            return null;
+        }
+
+        public ushort GetID(string str)
+        {
+            ushort id = 0;
+            _stringsByName.TryGetValue(str, out id);
+            return id;
+        }
+
+        public ushort GetString(ushort id)
+        {
+            string str;
+            _stringsByID.TryGetValue(id, out str);
+            return str;
+        }
+
+        public StringTable(bool isHost, bool ignoreCase = false)
+        {
+            _isHost = isHost;
+            _stringsByName = new Dictionary<string, ushort>(ignoreCase ? System.StringComparer.InvariantCultureIgnoreCase : System.StringComparer.Ordinal);
         }
     }
 }

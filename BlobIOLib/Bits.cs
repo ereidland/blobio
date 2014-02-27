@@ -78,7 +78,20 @@ namespace BlobIO
             return result;
         }
 
+        public static ushort BytesToUShort(byte a, byte b)
+        {
+            ushort result = b;
+            result |= (ushort)(a << 8);
+            return result;
+        }
+
         public static void ConvertShortToBytes(short s, out byte a, out byte b)
+        {
+            a = (byte)(s >> 8);
+            b = (byte)(s & 0xFF);
+        }
+
+        public static void ConvertUShortToBytes(ushort s, out byte a, out byte b)
         {
             a = (byte)(s >> 8);
             b = (byte)(s & 0xFF);
@@ -189,10 +202,25 @@ namespace BlobIO
             return WriteShortInternal(value);
         }
 
+        public Bits WriteUShort(ushort value)
+        {
+            EnsureBitCapacity(BitIndex + ShortSizeInBits);
+            return WriteUShortInternal(value);
+        }
+
         private Bits WriteShortInternal(short value)
         {
             byte a, b;
             ConvertShortToBytes(value, out a, out b);
+            WriteByteInternal(a);
+            WriteByteInternal(b);
+            return this;
+        }
+
+        private Bits WriteUShortInternal(ushort value)
+        {
+            byte a, b;
+            ConvertUShortToBytes(value, out a, out b);
             WriteByteInternal(a);
             WriteByteInternal(b);
             return this;
@@ -363,6 +391,21 @@ namespace BlobIO
             return false;
         }
 
+        public bool TryReadUShort(out ushort value)
+        {
+            if (BitIndex <= TopBitIndex - ShortSizeInBits)
+            {
+                byte a, b;
+                TryReadByte(out a);
+                TryReadByte(out b);
+
+                value = BytesToUShort(a, b);
+                return true;
+            }
+            value = 0;
+            return false;
+        }
+
         public bool TryReadInt(out int value)
         {
             if (BitIndex <= TopBitIndex - IntSizeInBits)
@@ -432,6 +475,14 @@ namespace BlobIO
             return false;
         }
 
+        public bool ReadBit(bool def = false)
+        {
+            bool value;
+            if (TryReadBit(out value))
+                return value;
+            return def;
+        }
+
         public byte ReadByte(byte def = 0)
         {
             byte value;
@@ -452,6 +503,14 @@ namespace BlobIO
         {
             short value;
             if (TryReadShort(out value))
+                return value;
+            return def;
+        }
+
+        public short ReadUShort(ushort def = 0)
+        {
+            ushort value;
+            if (TryReadUShort(out value))
                 return value;
             return def;
         }
