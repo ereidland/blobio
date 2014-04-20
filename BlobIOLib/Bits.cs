@@ -507,7 +507,7 @@ namespace BlobIO
             return def;
         }
 
-        public short ReadUShort(ushort def = 0)
+        public ushort ReadUShort(ushort def = 0)
         {
             ushort value;
             if (TryReadUShort(out value))

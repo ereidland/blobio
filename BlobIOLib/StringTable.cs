@@ -67,7 +67,7 @@ namespace BlobIO
                 ushort id = 0;
                 if (alreadyDefined)
                 {
-                    id = bits.ReadShort();
+                    id = bits.ReadUShort();
                     return GetString(id);
                 }
                 else
@@ -77,7 +77,7 @@ namespace BlobIO
                     {
                         if (!_isHost) //Clients cannot send the host new entries.
                         {
-                            id = bits.ReadShort();
+                            id = bits.ReadUShort();
                             string str = bits.ReadString();
                             AddString(str, id);
 
@@ -98,7 +98,7 @@ namespace BlobIO
             return id;
         }
 
-        public ushort GetString(ushort id)
+        public string GetString(ushort id)
         {
             string str;
             _stringsByID.TryGetValue(id, out str);
@@ -109,6 +109,7 @@ namespace BlobIO
         {
             _isHost = isHost;
             _stringsByName = new Dictionary<string, ushort>(ignoreCase ? System.StringComparer.InvariantCultureIgnoreCase : System.StringComparer.Ordinal);
+            _stringsByID = new Dictionary<ushort, string>();
         }
     }
 }
